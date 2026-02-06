@@ -1,8 +1,10 @@
 ﻿using LinePutScript.Localization.WPF;
+using LinePutScript.Localization.WPF;
 using Panuon.WPF.UI;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.Diagnostics.Metrics;
 using System.IO.Packaging;
 using System.Linq;
@@ -141,6 +143,28 @@ namespace VPet.Plugin.Monitor
                     MessageBoxX.Show("数据查找失败,错误信息:\n{0}\n错误堆栈:\n{1}".Translate(e.Message, e.StackTrace), "性能监视器报错".Translate(), icon: MessageBoxIcon.Error);
                 });
             }
+        {
+            try
+            {
+                float C = CpuCounter.NextValue();
+                float CL = RamCLCounter.NextValue();
+                float AVA = RamAVACounter.NextValue();
+                float R = (CL - AVA) / CL * 100;
+                ChangeUIText(Using_CPU, "CPU", C);
+                ChangeUIText(Using_RAM, "RAM", R);
+                MoveProcessBar(Bar_CPU, (double)C);
+                MoveProcessBar(Bar_RAM, (double)R);
+                float N = NetCounter.NextValue();
+                ChangeUIText(Using_Net, $"↑↓:{ReadNetByte(N)}");
+                MoveProcessBar(Bar_Net, N);
+            }
+            catch (Exception e)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBoxX.Show("数据查找失败,错误信息:\n{0}\n错误堆栈:\n{1}".Translate(e.Message, e.StackTrace), "性能监视器报错".Translate(), icon: MessageBoxIcon.Error);
+                });
+            }
         }
         public void StartWork()
         {
@@ -160,6 +184,8 @@ namespace VPet.Plugin.Monitor
                 {
                     if(NetGetIntances() != -1)
                         Netinit(NetIntances[NetGetIntances()]);
+                    if(NetGetIntances() != -1)
+                        Netinit(NetIntances[NetGetIntances()]);
                 }
             }
             GPUGetIntances();
@@ -167,6 +193,29 @@ namespace VPet.Plugin.Monitor
 
         }
         public int NetGetIntances()
+        {
+            try
+            {
+                NetIntances.Clear();
+                NetIntances.AddRange(Founder_Net.GetInstanceNames());
+                int NetIndex = 0;
+                foreach (string intancename in NetIntances)
+                {
+                    if (intancename.Contains("WIFI"))
+                    {
+                        NetIndex = NetIntances.IndexOf(intancename);
+                    }
+                }
+                return NetIndex;
+            }
+            catch(Exception e)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBoxX.Show("信息查找失败,错误信息:\n{0}\n错误堆栈:\n{1}".Translate(e.Message, e.StackTrace), "性能监视器报错".Translate(), icon: MessageBoxIcon.Error);
+                });
+                return -1;
+            }
         {
             try
             {
@@ -205,6 +254,9 @@ namespace VPet.Plugin.Monitor
             foreach (PerformanceCounter counter in GpuEnginelist)
             {
                 persentage += counter.NextValue();
+            foreach (PerformanceCounter counter in GpuEnginelist)
+            {
+                persentage += counter.NextValue();
             }
             return persentage;
         }
@@ -213,6 +265,20 @@ namespace VPet.Plugin.Monitor
             NetCounter = new PerformanceCounter("Network Interface", "Bytes Received/sec", CounterName);
         }
         public void GPUGetIntances()
+        {
+            try
+            {
+                GPUintancenames = Founder_GPU.GetInstanceNames();
+                GPUIntances.Clear();
+            }
+            catch (Exception e)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBoxX.Show("信息查找失败,错误信息:\n{0}\n错误堆栈:\n{1}".Translate(e.Message, e.StackTrace), "性能监视器报错".Translate(), icon: MessageBoxIcon.Error);
+                });
+                return;
+            }
         {
             try
             {
